@@ -1,0 +1,32 @@
+1. Create and Activate Virtual Environment:
+------------------------------------------------------------
+
+cd backend
+python -m venv venv
+
+# On Linux/macOS:
+source venv/bin/activate
+
+-----------------------------------------------------------------
+2. Install Dependencies
+-------------------------------
+pip install -r requirements.txt
+
+----------------------------------------------
+3. Start the FastAPI Server
+---------------------------------------
+uvicorn main:app --reload --port 8000
+
+------------------------------------------------------------
+4. Initialize Angular app
+---------------------------------------
+# Make sure Node.js and Angular CLI are installed globally
+# npm install -g @angular/cli
+
+ng new frontend --defaults --style=css --routing=false
+cd frontend
+--------------------------------------------------------------------------------------
+5. Start the Angular Development Server
+-------------------------------------------------------------------------------------
+ng serve --open
+-------------------------------------------------------------------------------------
