@@ -1,80 +1,110 @@
 <div class="container">
-  <h2>Digital Image Processing Workbench</h2>
+  <header class="hero">
+    <div>
+      <h2>Digital Image Processing Workbench</h2>
+      <p>
+        Upload an image, pick a filter, adjust its parameter, then preview and download the result.
+      </p>
+    </div>
 
-  <!-- Controls Panel -->
-  <div class="toolbar">
-    <!-- Image Selector -->
-    <input type="file" (change)="onFileSelected($event)" accept="image/*">
+    @if (selectedFileName) {
+      <div class="file-chip">Selected: {{ selectedFileName }}</div>
+    }
+  </header>
 
-    <!-- Filter Selection -->
-    <select [(ngModel)]="selectedFilter" (change)="onFilterChange()">
-      <optgroup label="Smoothing & Sharpening Filters">
-        <option value="average">Box Blur (Average)</option>
-        <option value="median">Median Blur</option>
-        <option value="gaussian">Gaussian Blur</option>
-        <option value="sharpen">Sharpening Kernel</option>
-      </optgroup>
-      <optgroup label="Spatial Domain Filtering">
-        <option value="laplacian">Laplacian Edge Detection</option>
-        <option value="sobel">Sobel Edge Magnitude</option>
-      </optgroup>
-      <optgroup label="Gray-Level Transformations">
-        <option value="invert">Invert Image</option>
-        <option value="brightness">Adjust Brightness</option>
-        <option value="contrast">Adjust Contrast</option>
-      </optgroup>
-      <optgroup label="Histogram Processing">
-        <option value="histogram">Histogram Equalization</option>
-      </optgroup>
-    </select>
+  <section class="toolbar">
+    <label class="control file-picker">
+      <span>Upload image</span>
+      <input type="file" (change)="onFileSelected($event)" accept="image/*">
+    </label>
 
-    <!-- Dynamic Sliders for Interactive Filter Tuning -->
-    @if (['average', 'median', 'gaussian'].includes(selectedFilter)) {
-      <div class="slider-box">
-        <label>Kernel Size: {{ filterParam }}</label>
+    <label class="control">
+      <span>Filter</span>
+      <select [(ngModel)]="selectedFilter" (change)="onFilterChange()">
+        <optgroup label="Smoothing & Sharpening Filters">
+          <option value="average">Box Blur (Average)</option>
+          <option value="median">Median Blur</option>
+          <option value="gaussian">Gaussian Blur</option>
+          <option value="sharpen">Sharpening Kernel</option>
+        </optgroup>
+        <optgroup label="Spatial Domain Filtering">
+          <option value="laplacian">Laplacian Edge Detection</option>
+          <option value="sobel">Sobel Edge Magnitude</option>
+        </optgroup>
+        <optgroup label="Gray-Level Transformations">
+          <option value="invert">Invert Image</option>
+          <option value="brightness">Adjust Brightness</option>
+          <option value="contrast">Adjust Contrast</option>
+        </optgroup>
+        <optgroup label="Histogram Processing">
+          <option value="histogram">Histogram Equalization</option>
+        </optgroup>
+      </select>
+    </label>
+
+    @if (usesKernelSizeSlider) {
+      <label class="control slider-box">
+        <span>Kernel Size: {{ filterParam }}</span>
         <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam">
-      </div>
+      </label>
     }
 
     @if (selectedFilter === 'brightness') {
-      <div class="slider-box">
-        <label>Offset: {{ filterParam }}</label>
+      <label class="control slider-box">
+        <span>Offset: {{ filterParam }}</span>
         <input type="range" min="-100" max="100" step="5" [(ngModel)]="filterParam">
-      </div>
+      </label>
     }
 
     @if (selectedFilter === 'contrast') {
-      <div class="slider-box">
-        <label>Factor: {{ filterParam }}</label>
+      <label class="control slider-box">
+        <span>Factor: {{ filterParam }}</span>
         <input type="range" min="0.2" max="3.0" step="0.1" [(ngModel)]="filterParam">
-      </div>
+      </label>
     }
 
-    <!-- Processing & Saving Controls -->
-    <button (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
-      {{ isLoading ? 'Processing...' : 'Apply Filter' }}
-    </button>
+    <div class="actions">
+      <button type="button" (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
+        {{ isLoading ? 'Processing...' : 'Apply Filter' }}
+      </button>
 
-    <button (click)="saveImage()" [disabled]="!processedImageSrc">Save Image</button>
-  </div>
+      <button type="button" (click)="saveImage()" [disabled]="!processedImageSrc">
+        Save Image
+      </button>
 
-  <!-- Side-by-Side Comparison Grid -->
-  <div class="view-panel">
+      <button type="button" class="secondary" (click)="clearSelection()">
+        Clear
+      </button>
+    </div>
+  </section>
+
+  @if (errorMessage) {
+    <div class="status error">{{ errorMessage }}</div>
+  } @else if (isLoading) {
+    <div class="status">Processing image...</div>
+  }
+
+  <section class="view-panel">
     <div class="box">
-      <h3>Before (Original)</h3>
+      <h3>Before</h3>
       <div class="image-wrapper">
         @if (originalImageSrc) {
-          <img [src]="originalImageSrc" alt="Original Upload">
+          <img [src]="originalImageSrc" alt="Original upload">
+        } @else {
+          <div class="placeholder">Upload an image to preview it here.</div>
         }
       </div>
     </div>
+
     <div class="box">
-      <h3>After (Processed)</h3>
+      <h3>After</h3>
       <div class="image-wrapper">
         @if (processedImageSrc) {
-          <img [src]="processedImageSrc" alt="Filtered Output">
+          <img [src]="processedImageSrc" alt="Filtered output">
+        } @else {
+          <div class="placeholder">Processed output will appear here.</div>
         }
       </div>
     </div>
-  </div>
+  </section>
 </div>
