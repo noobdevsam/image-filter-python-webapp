@@ -1,9 +1,12 @@
 <div class="container">
   <h2>Digital Image Processing Workbench</h2>
 
+  <!-- Controls Panel -->
   <div class="toolbar">
+    <!-- Image Selector -->
     <input type="file" (change)="onFileSelected($event)" accept="image/*">
 
+    <!-- Filter Selection -->
     <select [(ngModel)]="selectedFilter" (change)="onFilterChange()">
       <optgroup label="Smoothing & Sharpening Filters">
         <option value="average">Box Blur (Average)</option>
@@ -25,21 +28,29 @@
       </optgroup>
     </select>
 
-    <div class="slider-box" *ngIf="['average', 'median', 'gaussian'].includes(selectedFilter)">
-      <label>Kernel Size: {{ filterParam }}</label>
-      <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam">
-    </div>
+    <!-- Dynamic Sliders for Interactive Filter Tuning -->
+    @if (['average', 'median', 'gaussian'].includes(selectedFilter)) {
+      <div class="slider-box">
+        <label>Kernel Size: {{ filterParam }}</label>
+        <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam">
+      </div>
+    }
 
-    <div class="slider-box" *ngIf="selectedFilter === 'brightness'">
-      <label>Offset: {{ filterParam }}</label>
-      <input type="range" min="-100" max="100" step="5" [(ngModel)]="filterParam">
-    </div>
+    @if (selectedFilter === 'brightness') {
+      <div class="slider-box">
+        <label>Offset: {{ filterParam }}</label>
+        <input type="range" min="-100" max="100" step="5" [(ngModel)]="filterParam">
+      </div>
+    }
 
-    <div class="slider-box" *ngIf="selectedFilter === 'contrast'">
-      <label>Factor: {{ filterParam }}</label>
-      <input type="range" min="0.2" max="3.0" step="0.1" [(ngModel)]="filterParam">
-    </div>
+    @if (selectedFilter === 'contrast') {
+      <div class="slider-box">
+        <label>Factor: {{ filterParam }}</label>
+        <input type="range" min="0.2" max="3.0" step="0.1" [(ngModel)]="filterParam">
+      </div>
+    }
 
+    <!-- Processing & Saving Controls -->
     <button (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
       {{ isLoading ? 'Processing...' : 'Apply Filter' }}
     </button>
@@ -47,17 +58,22 @@
     <button (click)="saveImage()" [disabled]="!processedImageSrc">Save Image</button>
   </div>
 
+  <!-- Side-by-Side Comparison Grid -->
   <div class="view-panel">
     <div class="box">
       <h3>Before (Original)</h3>
       <div class="image-wrapper">
-        <img *ngIf="originalImageSrc" [src]="originalImageSrc" alt="Original Upload">
+        @if (originalImageSrc) {
+          <img [src]="originalImageSrc" alt="Original Upload">
+        }
       </div>
     </div>
     <div class="box">
       <h3>After (Processed)</h3>
       <div class="image-wrapper">
-        <img *ngIf="processedImageSrc" [src]="processedImageSrc" alt="Filtered Output">
+        @if (processedImageSrc) {
+          <img [src]="processedImageSrc" alt="Filtered Output">
+        }
       </div>
     </div>
   </div>
