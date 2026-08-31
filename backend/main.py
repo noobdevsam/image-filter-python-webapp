@@ -155,14 +155,13 @@ def process_opencv_filter(
 # --- Extended API Endpoints ---
 
 
-# 1. Direct Blob Processing (In-Memory Streams)
+# Replaces the old /api/filter endpoint in backend/main.py
 @app.post("/api/filter")
 async def process_filter_stream(
         file: UploadFile = File(...),
         filter_type: str = Form(...),
         param: float = Form(1.0),
 ):
-    """Processes uploaded binary directly and streams back processed JPEG binary."""
     contents = await file.read()
     nparr = np.frombuffer(contents, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -173,8 +172,22 @@ async def process_filter_stream(
         )
 
     out = process_opencv_filter(img, filter_type, param)
-    _, encoded_img = cv2.imencode(".jpg", out)
-    return Response(content=encoded_img.tobytes(), media_type="image/jpeg")
+
+    # Save output image directly to local server storage
+    processed_filename = (
+        f"processed_{filter_type}_{uuid.uuid4().hex[:8]}.jpg"
+    )
+    output_path = os.path.join(PROCESSED_DIR, processed_filename)
+    cv2.imwrite(output_path, out)
+
+    # Return small JSON response to save immediate network bandwidth
+    return JSONResponse(
+        content={
+            "status": "complete",
+            "message": f"Filter '{filter_type}' applied successfully and saved on server.",
+            "processed_file_id": processed_filename,
+        }
+    )
 
 
 # 2. File Upload & Server-side Persistence
