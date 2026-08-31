@@ -124,6 +124,7 @@ export class AppComponent {
         next: (res) => {
           this.processedFileId = res.processed_file_id;
           this.statusMessage = res.message || 'Filter applied successfully.';
+          this.fetchProcessedImage();  // Load the processed image into the preview pane
         },
         error: (err) => {
           console.error('Processing error:', err);

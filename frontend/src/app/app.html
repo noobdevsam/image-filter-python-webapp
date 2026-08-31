@@ -48,23 +48,14 @@
       </div>
     }
 
-    <!-- Output Format Selector -->
-    <div class="select-box">
-      <label>Export Format:</label>
-      <select [(ngModel)]="outputFormat">
-        <option value="jpg">JPEG (.jpg)</option>
-        <option value="png">PNG (.png)</option>
-      </select>
-    </div>
-
     <!-- Action Buttons -->
     <button (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
       {{ isLoading ? 'Processing...' : 'Apply Filter' }}
-    </button>
-
-    <!-- Fetch Image onto Screen Button -->
-    <button (click)="fetchProcessedImage()" [disabled]="!processedFileId || processedImageSrc">
-      View Processed Image
+      @if (isLoading) {
+        <div class="status-bar">
+          Processing image... please wait.
+        </div>
+      }
     </button>
 
     <!-- Download/Save Image File Button -->
@@ -75,6 +66,7 @@
     <button type="button" class="secondary" (click)="cleanupStorage()">
       Cleanup Storage
     </button>
+
   </div>
 
   <!-- Status Bar -->
