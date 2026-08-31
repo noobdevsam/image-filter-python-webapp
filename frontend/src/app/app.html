@@ -71,6 +71,10 @@
     <button (click)="downloadImage()" [disabled]="!processedFileId">
       Download Processed Image
     </button>
+
+    <button type="button" class="secondary" (click)="cleanupStorage()">
+      Cleanup Storage
+    </button>
   </div>
 
   <!-- Status Bar -->
