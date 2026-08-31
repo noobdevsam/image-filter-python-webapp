@@ -2,6 +2,7 @@ import {Component} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
+import {finalize} from 'rxjs';
 
 interface ImageMetadata {
   file_id: string;
@@ -106,27 +107,57 @@ export class AppComponent {
 
     this.isLoading = true;
     this.statusMessage = 'Processing filter on backend...';
-    this.processedImageSrc = null; // Clear old preview
+    this.processedImageSrc = null;
 
     const formData = new FormData();
     formData.append('file', this.selectedFile);
     formData.append('filter_type', this.selectedFilter);
     formData.append('param', this.filterParam.toString());
 
-    // Expect default JSON response from backend
-    this.http.post<any>(`${this.API_BASE}/filter`, formData).subscribe({
-      next: (res) => {
-        this.processedFileId = res.processed_file_id;
-        this.statusMessage = res.message;
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Processing error:', err);
-        this.statusMessage = 'Failed to apply filter.';
-        this.isLoading = false;
-      }
-    });
+    this.http.post<any>(`${this.API_BASE}/filter`, formData)
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe({
+        next: (res) => {
+          this.processedFileId = res.processed_file_id;
+          this.statusMessage = res.message || 'Filter applied successfully.';
+        },
+        error: (err) => {
+          console.error('Processing error:', err);
+          this.statusMessage = 'Failed to apply filter.';
+        }
+      });
   }
+
+  // applyFilter(): void {
+  //   if (!this.selectedFile) return;
+  //
+  //   this.isLoading = true;
+  //   this.statusMessage = 'Processing filter on backend...';
+  //   this.processedImageSrc = null; // Clear old preview
+  //
+  //   const formData = new FormData();
+  //   formData.append('file', this.selectedFile);
+  //   formData.append('filter_type', this.selectedFilter);
+  //   formData.append('param', this.filterParam.toString());
+  //
+  //   // Expect default JSON response from backend
+  //   this.http.post<any>(`${this.API_BASE}/filter`, formData).subscribe({
+  //     next: (res) => {
+  //       this.processedFileId = res.processed_file_id;
+  //       this.statusMessage = res.message;
+  //       this.isLoading = false;
+  //     },
+  //     error: (err) => {
+  //       console.error('Processing error:', err);
+  //       this.statusMessage = 'Failed to apply filter.';
+  //       this.isLoading = false;
+  //     }
+  //   });
+  // }
 
 // Loads the image into the frontend "After" preview pane via download endpoint
   fetchProcessedImage(): void {
