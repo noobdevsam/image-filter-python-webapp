@@ -101,26 +101,56 @@ export class AppComponent {
   }
 
   // 4. Process Saved Server File
+  // applyFilter(): void {
+  //   if (!this.uploadedFileId) return;
+  //
+  //   this.isLoading = true;
+  //   this.statusMessage = 'Processing filter on server...';
+  //
+  //   const formData = new FormData();
+  //   formData.append('filter_type', this.selectedFilter);
+  //   formData.append('param', this.filterParam.toString());
+  //   formData.append('output_format', this.outputFormat);
+  //
+  //   this.http.post<any>(`${this.API_BASE}/files/process/${this.uploadedFileId}`, formData).subscribe({
+  //     next: (res) => {
+  //       this.processedFileId = res.processed_file_id;
+  //       this.processedImageSrc = `${this.API_BASE}/files/download/${res.processed_file_id}?t=${Date.now()}`;
+  //       this.statusMessage = `Filter '${this.selectedFilter}' applied successfully!`;
+  //       this.isLoading = false;
+  //     },
+  //     error: (err) => {
+  //       console.error('Processing error:', err);
+  //       this.statusMessage = 'Failed to apply filter.';
+  //       this.isLoading = false;
+  //     }
+  //   });
+  // }
+// --- OPTION A: If your backend returns binary blob streams directly (/api/filter) ---
   applyFilter(): void {
-    if (!this.uploadedFileId) return;
+    if (!this.selectedFile) return;
 
     this.isLoading = true;
-    this.statusMessage = 'Processing filter on server...';
+    this.statusMessage = 'Applying filter...';
 
     const formData = new FormData();
+    formData.append('file', this.selectedFile);
     formData.append('filter_type', this.selectedFilter);
     formData.append('param', this.filterParam.toString());
-    formData.append('output_format', this.outputFormat);
 
-    this.http.post<any>(`${this.API_BASE}/files/process/${this.uploadedFileId}`, formData).subscribe({
-      next: (res) => {
-        this.processedFileId = res.processed_file_id;
-        this.processedImageSrc = `${this.API_BASE}/files/download/${res.processed_file_id}?t=${Date.now()}`;
-        this.statusMessage = `Filter '${this.selectedFilter}' applied successfully!`;
+    // Set responseType to 'blob' so Angular doesn't try to parse raw JPEG bytes as JSON
+    this.http.post(`${this.API_BASE}/filter`, formData, {responseType: 'blob'}).subscribe({
+      next: (blob: Blob) => {
+        // Create a direct, cache-proof Blob Object URL for the <img> src tag
+        if (this.processedImageSrc) {
+          URL.revokeObjectURL(this.processedImageSrc); // Revoke previous memory allocation
+        }
+        this.processedImageSrc = URL.createObjectURL(blob);
+        this.statusMessage = 'Filter applied successfully!';
         this.isLoading = false;
       },
       error: (err) => {
-        console.error('Processing error:', err);
+        console.error('Filter error:', err);
         this.statusMessage = 'Failed to apply filter.';
         this.isLoading = false;
       }
