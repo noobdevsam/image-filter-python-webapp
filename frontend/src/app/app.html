@@ -103,7 +103,9 @@
       <h3>After (Processed)</h3>
       <div class="image-wrapper">
         @if (processedImageSrc) {
-          <img [src]="processedImageSrc" alt="Filtered Image">
+          <img [src]="processedImageSrc" alt="Filtered Output">
+        } @else {
+          <p class="placeholder-text">Select a filter and click "Apply Filter" to see results.</p>
         }
       </div>
     </div>
