@@ -1,7 +1,14 @@
-import {CommonModule} from '@angular/common';
+import {Component} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
-import {Component, OnDestroy} from '@angular/core';
+import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
+
+interface ImageMetadata {
+  file_id: string;
+  dimensions: { width: number; height: number };
+  channels: number;
+  mean_intensity: { red: number; green: number; blue: number };
+}
 
 @Component({
   selector: 'app-root',
@@ -10,50 +17,79 @@ import {FormsModule} from '@angular/forms';
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })
-export class AppComponent implements OnDestroy {
-  private readonly apiUrl = 'http://localhost:8000/api/filter';
+export class AppComponent {
+  private readonly API_BASE = 'http://localhost:8000/api';
 
   selectedFile: File | null = null;
+  uploadedFileId: string | null = null;
+  processedFileId: string | null = null;
+
   originalImageSrc: string | null = null;
   processedImageSrc: string | null = null;
-  selectedFilter = 'average';
-  filterParam = 5;
-  isLoading = false;
-  errorMessage: string | null = null;
-  selectedFileName: string | null = null;
+  metadata: ImageMetadata | null = null;
+
+  selectedFilter: string = 'average';
+  filterParam: number = 5;
+  outputFormat: string = 'jpg';
+  isLoading: boolean = false;
+  statusMessage: string = '';
 
   constructor(private http: HttpClient) {
   }
 
-  ngOnDestroy(): void {
-    this.revokeProcessedImageUrl();
-  }
-
-  get usesKernelSizeSlider(): boolean {
-    return ['average', 'median', 'gaussian'].includes(this.selectedFilter);
-  }
-
+  // 1. Handle File Selection and Upload to Server Storage
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.selectedFile = input.files[0];
 
-    if (!input.files || input.files.length === 0) {
-      this.clearSelection();
-      return;
+      // Local preview
+      const reader = new FileReader();
+      reader.onload = (e) => (this.originalImageSrc = e.target?.result as string);
+      reader.readAsDataURL(this.selectedFile);
+
+      // Reset state
+      this.processedImageSrc = null;
+      this.processedFileId = null;
+      this.metadata = null;
+
+      // Automatically upload file to persistent server storage
+      this.uploadFileToServer();
     }
-
-    this.selectedFile = input.files[0];
-    this.selectedFileName = this.selectedFile.name;
-    this.errorMessage = null;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.originalImageSrc = e.target?.result as string;
-    };
-    reader.readAsDataURL(this.selectedFile);
-
-    this.clearProcessedImage();
   }
 
+  uploadFileToServer(): void {
+    if (!this.selectedFile) return;
+
+    this.isLoading = true;
+    this.statusMessage = 'Uploading file to server...';
+    const formData = new FormData();
+    formData.append('file', this.selectedFile);
+
+    this.http.post<any>(`${this.API_BASE}/files/upload`, formData).subscribe({
+      next: (res) => {
+        this.uploadedFileId = res.file_id;
+        this.statusMessage = 'File uploaded successfully.';
+        this.fetchMetadata(res.file_id);
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error('Upload failed:', err);
+        this.statusMessage = 'Failed to upload image to server.';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  // 2. Fetch Image Metadata Statistics
+  fetchMetadata(fileId: string): void {
+    this.http.get<ImageMetadata>(`${this.API_BASE}/files/metadata/${fileId}`).subscribe({
+      next: (data) => (this.metadata = data),
+      error: (err) => console.error('Error fetching metadata:', err)
+    });
+  }
+
+  // 3. Reset Filter Default Parameter Bounds
   onFilterChange(): void {
     if (['average', 'median', 'gaussian'].includes(this.selectedFilter)) {
       this.filterParam = 5;
@@ -61,92 +97,60 @@ export class AppComponent implements OnDestroy {
       this.filterParam = 30;
     } else if (this.selectedFilter === 'contrast') {
       this.filterParam = 1.5;
-    } else {
-      this.filterParam = 5;
     }
-
-    this.errorMessage = null;
-    this.clearProcessedImage();
   }
 
+  // 4. Process Saved Server File
   applyFilter(): void {
-    if (!this.selectedFile) {
-      this.errorMessage = 'Please upload an image first.';
-      return;
-    }
+    if (!this.uploadedFileId) return;
 
     this.isLoading = true;
-    this.errorMessage = null;
+    this.statusMessage = 'Processing filter on server...';
 
     const formData = new FormData();
-    formData.append('file', this.selectedFile);
     formData.append('filter_type', this.selectedFilter);
     formData.append('param', this.filterParam.toString());
+    formData.append('output_format', this.outputFormat);
 
-    this.http.post(this.apiUrl, formData, {responseType: 'blob' as const}).subscribe({
-      next: (blob) => {
-        this.revokeProcessedImageUrl();
-        this.processedImageSrc = URL.createObjectURL(blob);
+    this.http.post<any>(`${this.API_BASE}/files/process/${this.uploadedFileId}`, formData).subscribe({
+      next: (res) => {
+        this.processedFileId = res.processed_file_id;
+        this.processedImageSrc = `${this.API_BASE}/files/download/${res.processed_file_id}?t=${Date.now()}`;
+        this.statusMessage = `Filter '${this.selectedFilter}' applied successfully!`;
         this.isLoading = false;
       },
       error: (err) => {
+        console.error('Processing error:', err);
+        this.statusMessage = 'Failed to apply filter.';
         this.isLoading = false;
-        this.processedImageSrc = null;
-        this.errorMessage = this.extractErrorMessage(err);
       }
     });
   }
 
-  saveImage(): void {
-    if (!this.processedImageSrc) {
-      return;
-    }
+  // 5. Download Output File Stream
+  downloadImage(): void {
+    if (!this.processedFileId) return;
 
+    const downloadUrl = `${this.API_BASE}/files/download/${this.processedFileId}`;
     const link = document.createElement('a');
-    link.href = this.processedImageSrc;
-    link.download = `filtered_${this.selectedFilter}.jpg`;
+    link.href = downloadUrl;
+    link.download = this.processedFileId;
     link.click();
   }
 
-  clearSelection(): void {
-    this.selectedFile = null;
-    this.selectedFileName = null;
-    this.originalImageSrc = null;
-    this.errorMessage = null;
-    this.clearProcessedImage();
-  }
-
-  private clearProcessedImage(): void {
-    this.revokeProcessedImageUrl();
-    this.processedImageSrc = null;
-  }
-
-  private revokeProcessedImageUrl(): void {
-    if (this.processedImageSrc?.startsWith('blob:')) {
-      URL.revokeObjectURL(this.processedImageSrc);
-    }
-  }
-
-  private extractErrorMessage(err: unknown): string {
-    if (typeof err === 'object' && err !== null) {
-      const response = err as { error?: unknown; message?: unknown };
-
-      if (typeof response.error === 'string') {
-        return response.error;
-      }
-
-      if (typeof response.error === 'object' && response.error !== null) {
-        const nested = response.error as { detail?: unknown };
-        if (typeof nested.detail === 'string') {
-          return nested.detail;
-        }
-      }
-
-      if (typeof response.message === 'string') {
-        return response.message;
-      }
-    }
-
-    return 'Failed to process the image. Make sure the FastAPI backend is running on http://localhost:8000.';
+  // 6. Purge Storage via Housekeeping Endpoint
+  cleanupStorage(): void {
+    this.http.delete<any>(`${this.API_BASE}/files/cleanup`).subscribe({
+      next: (res) => {
+        this.statusMessage = `Storage cleaned up. Removed ${res.files_deleted} files.`;
+        this.originalImageSrc = null;
+        this.processedImageSrc = null;
+        this.selectedFile = null;
+        this.uploadedFileId = null;
+        this.processedFileId = null;
+        this.metadata = null;
+      },
+      error: (err) => console.error('Cleanup failed:', err)
+    });
   }
 }
