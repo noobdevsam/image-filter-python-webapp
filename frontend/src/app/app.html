@@ -51,11 +51,6 @@
     <!-- Action Buttons -->
     <button (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
       {{ isLoading ? 'Processing...' : 'Apply Filter' }}
-      @if (isLoading) {
-        <div class="status-bar">
-          Processing image... please wait.
-        </div>
-      }
     </button>
 
     <!-- Download/Save Image File Button -->
