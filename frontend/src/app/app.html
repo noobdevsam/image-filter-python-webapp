@@ -58,12 +58,19 @@
     </div>
 
     <!-- Action Buttons -->
-    <button (click)="applyFilter()" [disabled]="!uploadedFileId || isLoading">
+    <button (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
       {{ isLoading ? 'Processing...' : 'Apply Filter' }}
     </button>
 
-    <button (click)="downloadImage()" [disabled]="!processedFileId">Download Image</button>
-    <button class="danger-btn" (click)="cleanupStorage()">Cleanup Server Storage</button>
+    <!-- Fetch Image onto Screen Button -->
+    <button (click)="fetchProcessedImage()" [disabled]="!processedFileId || processedImageSrc">
+      View Processed Image
+    </button>
+
+    <!-- Download/Save Image File Button -->
+    <button (click)="downloadImage()" [disabled]="!processedFileId">
+      Download Processed Image
+    </button>
   </div>
 
   <!-- Status Bar -->
