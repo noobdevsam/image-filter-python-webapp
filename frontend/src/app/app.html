@@ -1,111 +1,161 @@
-<div class="container">
+<div class="container" (window:mouseup)="stopDrag()" (window:touchend)="stopDrag()" (window:mousemove)="onDrag($event)" (window:touchmove)="onDrag($event)">
   <h2>Digital Image Processing Workbench</h2>
 
   <!-- Control Panel -->
   <div class="toolbar">
-    <input type="file" (change)="onFileSelected($event)" accept="image/*">
+    <div class="control-group">
+      <label class="label-heading">Choose Image</label>
+      <input type="file" (change)="onFileSelected($event)" accept="image/*">
+    </div>
 
-    <select [(ngModel)]="selectedFilter" (change)="onFilterChange()">
-      <optgroup label="Smoothing & Sharpening Filters">
-        <option value="average">Box Blur (Average)</option>
-        <option value="median">Median Blur</option>
-        <option value="gaussian">Gaussian Blur</option>
-        <option value="sharpen">Sharpening Kernel</option>
-      </optgroup>
-      <optgroup label="Spatial Domain Filtering">
-        <option value="laplacian">Laplacian Edge Detection</option>
-        <option value="sobel">Sobel Edge Magnitude</option>
-      </optgroup>
-      <optgroup label="Gray-Level Transformations">
-        <option value="invert">Invert Image</option>
-        <option value="brightness">Adjust Brightness</option>
-        <option value="contrast">Adjust Contrast</option>
-      </optgroup>
-      <optgroup label="Histogram Processing">
-        <option value="histogram">Histogram Equalization</option>
-      </optgroup>
-    </select>
+    <div class="control-group">
+      <label class="label-heading">Filter Algorithm</label>
+      <select [(ngModel)]="selectedFilter" (change)="onFilterChange()" [disabled]="!selectedFile">
+        <optgroup label="Smoothing & Sharpening Filters">
+          <option value="average">Box Blur (Average)</option>
+          <option value="median">Median Blur</option>
+          <option value="gaussian">Gaussian Blur</option>
+          <option value="sharpen">Sharpening Kernel</option>
+        </optgroup>
+        <optgroup label="Spatial Domain Filtering">
+          <option value="laplacian">Laplacian Edge Detection</option>
+          <option value="sobel">Sobel Edge Magnitude</option>
+        </optgroup>
+        <optgroup label="Gray-Level Transformations">
+          <option value="invert">Invert Image</option>
+          <option value="brightness">Adjust Brightness</option>
+          <option value="contrast">Adjust Contrast</option>
+        </optgroup>
+        <optgroup label="Histogram Processing">
+          <option value="histogram">Histogram Equalization</option>
+        </optgroup>
+      </select>
+    </div>
 
-    <!-- Dynamic Param Controls -->
+    <!-- Dynamic Param Controls with Live Streaming Update -->
     @if (['average', 'median', 'gaussian'].includes(selectedFilter)) {
       <div class="slider-box">
         <label>Kernel Size: {{ filterParam }}</label>
-        <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam">
+        <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam" (input)="onParamChange()">
       </div>
     }
 
     @if (selectedFilter === 'brightness') {
       <div class="slider-box">
-        <label>Offset: {{ filterParam }}</label>
-        <input type="range" min="-100" max="100" step="5" [(ngModel)]="filterParam">
+        <label>Brightness: {{ filterParam > 0 ? '+' + filterParam : filterParam }}</label>
+        <input type="range" min="-100" max="100" step="2" [(ngModel)]="filterParam" (input)="onParamChange()">
       </div>
     }
 
     @if (selectedFilter === 'contrast') {
       <div class="slider-box">
-        <label>Factor: {{ filterParam }}</label>
-        <input type="range" min="0.2" max="3.0" step="0.1" [(ngModel)]="filterParam">
+        <label>Contrast Factor: {{ filterParam }}x</label>
+        <input type="range" min="0.2" max="3.0" step="0.05" [(ngModel)]="filterParam" (input)="onParamChange()">
       </div>
     }
 
+    <!-- View Mode Switch -->
+    <div class="view-mode-toggle">
+      <label class="label-heading">Display Mode</label>
+      <div class="btn-group">
+        <button type="button" class="toggle-btn" [class.active]="viewMode === 'split'" (click)="viewMode = 'split'">
+          Overlapping Slider
+        </button>
+        <button type="button" class="toggle-btn" [class.active]="viewMode === 'side-by-side'" (click)="viewMode = 'side-by-side'">
+          Side by Side
+        </button>
+      </div>
+    </div>
+
     <!-- Action Buttons -->
-    <button (click)="applyFilter()" [disabled]="!selectedFile || isLoading">
-      {{ isLoading ? 'Processing...' : 'Apply Filter' }}
-    </button>
-
-    <!-- Download/Save Image File Button -->
-    <button (click)="downloadImage()" [disabled]="!processedFileId">
-      Download Processed Image
-    </button>
-
-    <button type="button" class="secondary" (click)="cleanupStorage()">
-      Cleanup Storage
-    </button>
-
+    <div class="action-buttons">
+      <button (click)="downloadImage()" [disabled]="!processedImageSrc" class="download-btn">
+        Download Processed Image
+      </button>
+    </div>
   </div>
 
   <!-- Status Bar -->
   @if (statusMessage) {
-    <div class="status-bar">
-      {{ statusMessage }}
+    <div class="status-bar" [class.loading]="isLoading">
+      @if (isLoading) {
+        <span class="spinner"></span>
+      }
+      <span>{{ statusMessage }}</span>
     </div>
   }
 
   <!-- Metadata Card Display -->
   @if (metadata) {
     <div class="metadata-card">
-      <h4>Image Metadata Statistics</h4>
-      <p><strong>Dimensions:</strong> {{ metadata.dimensions.width }} px × {{ metadata.dimensions.height }} px</p>
-      <p><strong>Channels:</strong> {{ metadata.channels }}</p>
-      <p>
-        <strong>Mean Intensity:</strong>
-        R: {{ metadata.mean_intensity.red }} |
-        G: {{ metadata.mean_intensity.green }} |
-        B: {{ metadata.mean_intensity.blue }}
-      </p>
+      <h4>Processed Image Metadata (Dynamic)</h4>
+      <div class="meta-grid">
+        <p><strong>Dimensions:</strong> {{ metadata.dimensions.width }} px × {{ metadata.dimensions.height }} px</p>
+        <p><strong>Channels:</strong> {{ metadata.channels }}</p>
+        <p>
+          <strong>Mean Intensity:</strong>
+          <span class="badge r">R: {{ metadata.mean_intensity.red }}</span>
+          <span class="badge g">G: {{ metadata.mean_intensity.green }}</span>
+          <span class="badge b">B: {{ metadata.mean_intensity.blue }}</span>
+        </p>
+      </div>
     </div>
   }
 
-  <!-- Side-by-Side View -->
-  <div class="view-panel">
-    <div class="box">
-      <h3>Before (Original)</h3>
-      <div class="image-wrapper">
-        @if (originalImageSrc) {
-          <img [src]="originalImageSrc" alt="Original Image">
-        }
-      </div>
-    </div>
+  <!-- OVERLAPPING BEFORE / AFTER VIEW -->
+  @if (viewMode === 'split') {
+    <div class="overlapping-container" #comparisonContainer (mousedown)="startDrag($event)" (touchstart)="startDrag($event)">
+      @if (!originalImageSrc) {
+        <div class="placeholder-overlay">
+          <p>Please select an image file above to begin.</p>
+        </div>
+      } @else {
+        <!-- Base Layer: Processed (After) -->
+        <div class="image-layer after-layer">
+          <img [src]="processedImageSrc || originalImageSrc" alt="Processed Image" draggable="false">
+          <span class="label after-badge">After (Filtered)</span>
+        </div>
 
-    <div class="box">
-      <h3>After (Processed)</h3>
-      <div class="image-wrapper">
-        @if (processedImageSrc) {
-          <img [src]="processedImageSrc" alt="Filtered Output">
-        } @else {
-          <p class="placeholder-text">Select a filter and click "Apply Filter" to see results.</p>
-        }
+        <!-- Clipped Layer: Original (Before) -->
+        <div class="image-layer before-layer" [style.clip-path]="'inset(0 ' + (100 - splitPosition) + '% 0 0)'">
+          <img [src]="originalImageSrc" alt="Original Image" draggable="false">
+          <span class="label before-badge">Before (Original)</span>
+        </div>
+
+        <!-- Vertical Divider Bar -->
+        <div class="slider-divider" [style.left.%]="splitPosition">
+          <div class="slider-handle">
+            <span>‹ ›</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- SIDE-BY-SIDE VIEW -->
+  @if (viewMode === 'side-by-side') {
+    <div class="view-panel">
+      <div class="box">
+        <h3>Before (Original)</h3>
+        <div class="image-wrapper">
+          @if (originalImageSrc) {
+            <img [src]="originalImageSrc" alt="Original Image">
+          } @else {
+            <p class="placeholder-text">Upload an image to see original.</p>
+          }
+        </div>
+      </div>
+
+      <div class="box">
+        <h3>After (Processed)</h3>
+        <div class="image-wrapper">
+          @if (processedImageSrc) {
+            <img [src]="processedImageSrc" alt="Filtered Output">
+          } @else {
+            <p class="placeholder-text">Adjust sliders to see real-time output.</p>
+          }
+        </div>
       </div>
     </div>
-  </div>
+  }
 </div>
