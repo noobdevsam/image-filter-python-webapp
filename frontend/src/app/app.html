@@ -1,65 +1,138 @@
 <div class="container" (window:mouseup)="stopDrag()" (window:touchend)="stopDrag()" (window:mousemove)="onDrag($event)" (window:touchmove)="onDrag($event)">
-  <h2>Digital Image Processing Workbench</h2>
+  <header class="app-header">
+    <div class="title-group">
+      <h2>Mood Enhancer for Old Memories</h2>
+      <p class="subtitle">Emotion-Zone Adaptive Restoration for Vintage & Scanned Photos (Histogram + DIP Filters)</p>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="pipeline-switcher">
+      <button
+        type="button"
+        class="mode-tab"
+        [class.active]="pipelineMode === 'mood'"
+        (click)="setPipelineMode('mood')">
+        🎭 Emotion & Mood Pipeline
+      </button>
+      <button
+        type="button"
+        class="mode-tab"
+        [class.active]="pipelineMode === 'manual'"
+        (click)="setPipelineMode('manual')">
+        ⚙️ Manual DIP Filters
+      </button>
+    </div>
+  </header>
 
   <!-- Control Panel -->
   <div class="toolbar">
     <div class="control-group">
-      <label class="label-heading">Choose Image</label>
+      <label class="label-heading">Source Scanned Photo</label>
       <input type="file" (change)="onFileSelected($event)" accept="image/*">
     </div>
 
-    <div class="control-group">
-      <label class="label-heading">Filter Algorithm</label>
-      <select [(ngModel)]="selectedFilter" (change)="onFilterChange()" [disabled]="!selectedFile">
-        <optgroup label="Smoothing & Sharpening Filters">
-          <option value="average">Box Blur (Average)</option>
-          <option value="median">Median Blur</option>
-          <option value="gaussian">Gaussian Blur</option>
-          <option value="sharpen">Sharpening Kernel</option>
-        </optgroup>
-        <optgroup label="Spatial Domain Filtering">
-          <option value="laplacian">Laplacian Edge Detection</option>
-          <option value="sobel">Sobel Edge Magnitude</option>
-        </optgroup>
-        <optgroup label="Gray-Level Transformations">
-          <option value="invert">Invert Image</option>
-          <option value="brightness">Adjust Brightness</option>
-          <option value="contrast">Adjust Contrast</option>
-        </optgroup>
-        <optgroup label="Histogram Processing">
-          <option value="histogram">Histogram Equalization</option>
-        </optgroup>
-      </select>
-    </div>
+    <!-- ================= 1. EMOTION & MOOD PIPELINE CONTROLS ================= -->
+    @if (pipelineMode === 'mood') {
+      <div class="control-group">
+        <label class="label-heading">Emotional Tone Preset</label>
+        <select [(ngModel)]="selectedMood" (change)="onMoodChange()" [disabled]="!selectedFile">
+          <option value="nostalgic_warmth">Nostalgic Warmth (Gentle Sepia)</option>
+          <option value="gentle_portrait">Gentle Portrait (Soft Highlights & Skin)</option>
+          <option value="silver_gelatin">Classic Silver Gelatin (Deep Film B&W)</option>
+          <option value="vivid_scenery">Scenery & Nature Clarity</option>
+        </select>
+      </div>
 
-    <!-- Dynamic Param Controls with Live Streaming Update -->
-    @if (['average', 'median', 'gaussian'].includes(selectedFilter)) {
+      <!-- Zone: Face Gentle Brightness -->
       <div class="slider-box">
-        <label>Kernel Size: {{ filterParam }}</label>
-        <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam" (input)="onParamChange()">
+        <div class="slider-title-row">
+          <label>👤 Face Zone Lift</label>
+          <span class="param-val">+{{ faceBrightness }}</span>
+        </div>
+        <input type="range" min="0" max="40" step="1" [(ngModel)]="faceBrightness" (input)="onParamChange()" [disabled]="!selectedFile">
+      </div>
+
+      <!-- Zone: Sky / Background Smoothness -->
+      <div class="slider-box">
+        <div class="slider-title-row">
+          <label>☁️ Sky Grain Suppress</label>
+          <span class="param-val">{{ skySoftness }} px</span>
+        </div>
+        <input type="range" min="1" max="15" step="2" [(ngModel)]="skySoftness" (input)="onParamChange()" [disabled]="!selectedFile">
+      </div>
+
+      <!-- Histogram: CLAHE Contrast Limit -->
+      <div class="slider-box">
+        <div class="slider-title-row">
+          <label>📊 CLAHE Contrast</label>
+          <span class="param-val">{{ claheClipLimit }}x</span>
+        </div>
+        <input type="range" min="1.0" max="5.0" step="0.2" [(ngModel)]="claheClipLimit" (input)="onParamChange()" [disabled]="!selectedFile">
+      </div>
+
+      <!-- Toggle Detected Zone Overlay Boxes -->
+      <div class="control-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" [(ngModel)]="showZoneOverlay">
+          <span>Show Emotion Zones</span>
+        </label>
       </div>
     }
 
-    @if (selectedFilter === 'brightness') {
-      <div class="slider-box">
-        <label>Brightness: {{ filterParam > 0 ? '+' + filterParam : filterParam }}</label>
-        <input type="range" min="-100" max="100" step="2" [(ngModel)]="filterParam" (input)="onParamChange()">
+    <!-- ================= 2. MANUAL DIP FILTERS ================= -->
+    @if (pipelineMode === 'manual') {
+      <div class="control-group">
+        <label class="label-heading">DIP Filter Algorithm</label>
+        <select [(ngModel)]="selectedFilter" (change)="onFilterChange()" [disabled]="!selectedFile">
+          <optgroup label="Smoothing & Sharpening Filters">
+            <option value="average">Box Blur (Average)</option>
+            <option value="median">Median Blur (Scratch / Dust Removal)</option>
+            <option value="gaussian">Gaussian Blur</option>
+            <option value="sharpen">Sharpening Kernel</option>
+          </optgroup>
+          <optgroup label="Spatial Domain Filtering">
+            <option value="laplacian">Laplacian Edge Detection</option>
+            <option value="sobel">Sobel Edge Magnitude</option>
+          </optgroup>
+          <optgroup label="Gray-Level Transformations">
+            <option value="invert">Invert Image</option>
+            <option value="brightness">Adjust Brightness</option>
+            <option value="contrast">Adjust Contrast</option>
+          </optgroup>
+          <optgroup label="Histogram Processing">
+            <option value="histogram">Global Histogram Equalization</option>
+          </optgroup>
+        </select>
       </div>
-    }
 
-    @if (selectedFilter === 'contrast') {
-      <div class="slider-box">
-        <label>Contrast Factor: {{ filterParam }}x</label>
-        <input type="range" min="0.2" max="3.0" step="0.05" [(ngModel)]="filterParam" (input)="onParamChange()">
-      </div>
+      @if (['average', 'median', 'gaussian'].includes(selectedFilter)) {
+        <div class="slider-box">
+          <label>Kernel Size: {{ filterParam }}</label>
+          <input type="range" min="1" max="31" step="2" [(ngModel)]="filterParam" (input)="onParamChange()">
+        </div>
+      }
+
+      @if (selectedFilter === 'brightness') {
+        <div class="slider-box">
+          <label>Brightness: {{ filterParam > 0 ? '+' + filterParam : filterParam }}</label>
+          <input type="range" min="-100" max="100" step="2" [(ngModel)]="filterParam" (input)="onParamChange()">
+        </div>
+      }
+
+      @if (selectedFilter === 'contrast') {
+        <div class="slider-box">
+          <label>Contrast Factor: {{ filterParam }}x</label>
+          <input type="range" min="0.2" max="3.0" step="0.05" [(ngModel)]="filterParam" (input)="onParamChange()">
+        </div>
+      }
     }
 
     <!-- View Mode Switch -->
     <div class="view-mode-toggle">
-      <label class="label-heading">Display Mode</label>
+      <label class="label-heading">Comparison Mode</label>
       <div class="btn-group">
         <button type="button" class="toggle-btn" [class.active]="viewMode === 'split'" (click)="viewMode = 'split'">
-          Overlapping Slider
+          Split Slider
         </button>
         <button type="button" class="toggle-btn" [class.active]="viewMode === 'side-by-side'" (click)="viewMode = 'side-by-side'">
           Side by Side
@@ -70,7 +143,7 @@
     <!-- Action Buttons -->
     <div class="action-buttons">
       <button (click)="downloadImage()" [disabled]="!processedImageSrc" class="download-btn">
-        Download Processed Image
+        Save Memory Photo
       </button>
     </div>
   </div>
@@ -85,19 +158,30 @@
     </div>
   }
 
-  <!-- Metadata Card Display -->
+  <!-- Metadata & Detected Emotion Zones Summary -->
   @if (metadata) {
     <div class="metadata-card">
-      <h4>Processed Image Metadata (Dynamic)</h4>
+      <div class="meta-header">
+        <h4>Image & Emotion Zone Diagnostics</h4>
+        @if (metadata.active_mood) {
+          <span class="mood-pill">Mode: {{ metadata.active_mood }}</span>
+        }
+      </div>
       <div class="meta-grid">
-        <p><strong>Dimensions:</strong> {{ metadata.dimensions.width }} px × {{ metadata.dimensions.height }} px</p>
+        <p><strong>Dimensions:</strong> {{ metadata.dimensions.width }} × {{ metadata.dimensions.height }} px</p>
         <p><strong>Channels:</strong> {{ metadata.channels }}</p>
         <p>
-          <strong>Mean Intensity:</strong>
+          <strong>Color Balance:</strong>
           <span class="badge r">R: {{ metadata.mean_intensity.red }}</span>
           <span class="badge g">G: {{ metadata.mean_intensity.green }}</span>
           <span class="badge b">B: {{ metadata.mean_intensity.blue }}</span>
         </p>
+        @if (metadata.detected_zones && metadata.detected_zones.length > 0) {
+          <p>
+            <strong>Detected Emotion Zones:</strong>
+            <span class="zone-tag face-tag">👤 {{ metadata.detected_zones.length }} Face(s) Protected</span>
+          </p>
+        }
       </div>
     </div>
   }
@@ -107,19 +191,36 @@
     <div class="overlapping-container" #comparisonContainer (mousedown)="startDrag($event)" (touchstart)="startDrag($event)">
       @if (!originalImageSrc) {
         <div class="placeholder-overlay">
-          <p>Please select an image file above to begin.</p>
+          <p>📸 Please select a scanned black-and-white or vintage photo above to begin.</p>
         </div>
       } @else {
         <!-- Base Layer: Processed (After) -->
         <div class="image-layer after-layer">
           <img [src]="processedImageSrc || originalImageSrc" alt="Processed Image" draggable="false">
-          <span class="label after-badge">After (Filtered)</span>
+          <span class="label after-badge">Enhanced Memory</span>
+
+          <!-- Detected Emotion Zones Overlay (Faces, Skies) -->
+          @if (showZoneOverlay && metadata?.detected_zones) {
+            <div class="zones-overlay">
+              @for (zone of metadata?.detected_zones; track $index) {
+                <div
+                  class="emotion-bounding-box"
+                  [class]="zone.type + '-box'"
+                  [style.left.%]="zone.box.x"
+                  [style.top.%]="zone.box.y"
+                  [style.width.%]="zone.box.width"
+                  [style.height.%]="zone.box.height">
+                  <span class="box-tag">{{ zone.label || zone.type }}</span>
+                </div>
+              }
+            </div>
+          }
         </div>
 
         <!-- Clipped Layer: Original (Before) -->
         <div class="image-layer before-layer" [style.clip-path]="'inset(0 ' + (100 - splitPosition) + '% 0 0)'">
           <img [src]="originalImageSrc" alt="Original Image" draggable="false">
-          <span class="label before-badge">Before (Original)</span>
+          <span class="label before-badge">Original Memory</span>
         </div>
 
         <!-- Vertical Divider Bar -->
@@ -136,18 +237,18 @@
   @if (viewMode === 'side-by-side') {
     <div class="view-panel">
       <div class="box">
-        <h3>Before (Original)</h3>
+        <h3>Original Scanned Memory</h3>
         <div class="image-wrapper">
           @if (originalImageSrc) {
             <img [src]="originalImageSrc" alt="Original Image">
           } @else {
-            <p class="placeholder-text">Upload an image to see original.</p>
+            <p class="placeholder-text">Upload an image to preview original.</p>
           }
         </div>
       </div>
 
       <div class="box">
-        <h3>After (Processed)</h3>
+        <h3>Enhanced Result</h3>
         <div class="image-wrapper">
           @if (processedImageSrc) {
             <img [src]="processedImageSrc" alt="Filtered Output">

@@ -1,18 +1,61 @@
 .container {
   padding: 24px;
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1f2937;
 }
 
-h2 {
-  margin-top: 0;
+/* Header & Pipeline Mode Selector */
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
   margin-bottom: 20px;
-  font-weight: 700;
-  color: #111827;
 }
 
+.title-group h2 {
+  margin: 0 0 4px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.pipeline-switcher {
+  display: flex;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.mode-tab {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-tab.active {
+  background: white;
+  color: #1e40af;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Toolbar */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -31,7 +74,7 @@ h2 {
   gap: 6px;
 }
 
-.label-heading, .slider-box label {
+.label-heading {
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -39,17 +82,54 @@ h2 {
   color: #64748b;
 }
 
+.slider-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-title-row label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.param-val {
+  font-size: 11px;
+  font-weight: 700;
+  background: #e2e8f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: #334155;
+}
+
 select, input[type="file"] {
   padding: 7px 10px;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   background: white;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 input[type="range"] {
   cursor: pointer;
-  width: 160px;
+  width: 150px;
+}
+
+.checkbox-group {
+  justify-content: flex-end;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  height: 34px;
 }
 
 .btn-group {
@@ -88,7 +168,7 @@ input[type="range"] {
   padding: 8px 16px;
   border: none;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -102,6 +182,7 @@ input[type="range"] {
   cursor: not-allowed;
 }
 
+/* Status Bar */
 .status-bar {
   margin-bottom: 16px;
   padding: 10px 14px;
@@ -128,6 +209,7 @@ input[type="range"] {
   to { transform: rotate(360deg); }
 }
 
+/* Metadata Card */
 .metadata-card {
   background: white;
   border: 1px solid #e2e8f0;
@@ -137,10 +219,26 @@ input[type="range"] {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.metadata-card h4 {
-  margin: 0 0 10px 0;
+.meta-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.meta-header h4 {
+  margin: 0;
   font-size: 14px;
   color: #334155;
+}
+
+.mood-pill {
+  font-size: 12px;
+  font-weight: 600;
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
 .meta-grid {
@@ -166,11 +264,20 @@ input[type="range"] {
 .badge.g { background: #dcfce7; color: #166534; }
 .badge.b { background: #dbeafe; color: #1e40af; }
 
+.zone-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.face-tag { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+
 /* Overlapping Split Comparison */
 .overlapping-container {
   position: relative;
   width: 100%;
-  height: 550px;
+  height: 560px;
   background: #0f172a;
   border-radius: 10px;
   overflow: hidden;
@@ -205,6 +312,48 @@ input[type="range"] {
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+}
+
+/* Emotion Zones Visual Box */
+.zones-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.emotion-bounding-box {
+  position: absolute;
+  border: 2px dashed #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border-radius: 4px;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.face-box {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.sky-box {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.box-tag {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  background: #f59e0b;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
 }
 
 .label {
