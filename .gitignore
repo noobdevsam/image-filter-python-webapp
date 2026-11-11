@@ -3,3 +3,4 @@
 /backend/venv/
 /backend/processed/
 /backend/uploads/
+__pycache__/
